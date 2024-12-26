@@ -30,6 +30,7 @@ def home():
             db.session.add(book)
             db.session.commit()
         except Exception as e:
+            db.session.rollback()  # Added this line to handle the rollback
             print("Failed to add book")
             print(e)
     books = Book.query.all()
