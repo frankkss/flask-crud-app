@@ -1,33 +1,45 @@
+<!DOCTYPE html>
 <html>
-  <body>
-    <h1>Add book</h1>
+<head>
+    <title>Book Manager</title>
+</head>
+<body>
+    <h1>Add Book</h1>
     <form method="POST" action="/">
-      <input type="text" name="title">
-      <input type="submit" value="Add">
+        <input type="text" name="title" required>
+        <input type="submit" value="Add">
     </form>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
 
     <h1>Books</h1>
     <table>
-      {% for book in books %}
-        <tr>
-          <td>
-            {{book.title}} 
-          </td>
-          <td>
-            <form method="POST" action="./update" style="display: inline">
-              <input type="hidden" value="{{book.title}}" name="oldtitle">
-              <input type="text" value="{{book.title}}" name="newtitle">
-              <input type="submit" value="Update">
-            </form>
-          </td>
-          <td>
-            <form method="POST" action="./delete" style="display: inline">
-              <input type="hidden" value="{{book.title}}" name="title">
-              <input type="submit" value="Delete">
-            </form>
-          </td>
-        </tr>
+        {% for book in books %}
+            <tr>
+                <td>{{ book.title }}</td>
+                <td>
+                    <form method="POST" action="/update" style="display: inline">
+                        <input type="hidden" value="{{ book.title }}" name="oldtitle">
+                        <input type="text" value="{{ book.title }}" name="newtitle" required>
+                        <input type="submit" value="Update">
+                    </form>
+                </td>
+                <td>
+                    <form method="POST" action="/delete" style="display: inline">
+                        <input type="hidden" value="{{ book.title }}" name="title">
+                        <input type="submit" value="Delete">
+                    </form>
+                </td>
+            </tr>
         {% endfor %}
     </table>
-  </body>
+</body>
 </html>
