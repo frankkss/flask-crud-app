@@ -56,6 +56,10 @@ def delete():
     db.session.commit()
     return redirect("/")
 
+@app.route('/initdb')
+def initdb():
+    db.create_all()
+    return "Database initialized!"
 
 if __name__ == "__main__":
     app.run(debug=True)
