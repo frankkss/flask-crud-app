@@ -1,17 +1,14 @@
 import os
-
-from flask import Flask
-from flask import redirect
-from flask import render_template
-from flask import request
-
+from flask import Flask, redirect, render_template, request, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
-database_file = "sqlite:///{}".format(os.path.join(project_dir, "bookdatabase.db"))
+database_file = f"sqlite:///{os.path.join(project_dir, 'bookdatabase.db')}"
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = database_file
+app.config["SECRET_KEY"] = "your_secret_key"  # Needed for flash messages
 
 db = SQLAlchemy(app)
 
@@ -19,42 +16,66 @@ class Book(db.Model):
     title = db.Column(db.String(80), unique=True, nullable=False, primary_key=True)
 
     def __repr__(self):
-        return "<Title: {}>".format(self.title)
+        return f"<Title: {self.title}>"
 
 @app.route('/', methods=["GET", "POST"])
 def home():
-    books = None
-    if request.form:
-        try:
-            book = Book(title=request.form.get("title"))
-            db.session.add(book)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()  # Added this line to handle the rollback
-            print("Failed to add book")
-            print(e)
+    if request.method == "POST":
+        title = request.form.get("title")
+        if not title:
+            flash("Title cannot be empty", "error")
+        else:
+            try:
+                book = Book(title=title)
+                db.session.add(book)
+                db.session.commit()
+                flash("Book added successfully", "success")
+            except IntegrityError:
+                db.session.rollback()
+                flash("Book with this title already exists", "error")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Failed to add book: {e}", "error")
     books = Book.query.all()
     return render_template("home.html", books=books)
 
 @app.route("/update", methods=["POST"])
 def update():
-    try:
-        newtitle = request.form.get("newtitle")
-        oldtitle = request.form.get("oldtitle")
-        book = Book.query.filter_by(title=oldtitle).first()
-        book.title = newtitle
-        db.session.commit()
-    except Exception as e:
-        print("Couldn't update book title")
-        print(e)
+    newtitle = request.form.get("newtitle")
+    oldtitle = request.form.get("oldtitle")
+    if not newtitle or not oldtitle:
+        flash("Title fields cannot be empty", "error")
+    else:
+        try:
+            book = Book.query.filter_by(title=oldtitle).first()
+            if book:
+                book.title = newtitle
+                db.session.commit()
+                flash("Book updated successfully", "success")
+            else:
+                flash("Book not found", "error")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Couldn't update book title: {e}", "error")
     return redirect("/")
 
 @app.route("/delete", methods=["POST"])
 def delete():
     title = request.form.get("title")
-    book = Book.query.filter_by(title=title).first()
-    db.session.delete(book)
-    db.session.commit()
+    if not title:
+        flash("Title cannot be empty", "error")
+    else:
+        try:
+            book = Book.query.filter_by(title=title).first()
+            if book:
+                db.session.delete(book)
+                db.session.commit()
+                flash("Book deleted successfully", "success")
+            else:
+                flash("Book not found", "error")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Couldn't delete book: {e}", "error")
     return redirect("/")
 
 @app.route('/initdb')
